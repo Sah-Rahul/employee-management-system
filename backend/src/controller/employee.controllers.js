@@ -45,12 +45,67 @@ export const createEmployee = asyncHandler(async (req, res) => {
 });
 
 export const getAllEmployees = asyncHandler(async (req, res) => {
-  const allEmployees = await EmployeeModel.find({});
+  let { page, limit, search } = req.query;
 
+  // Parse page and limit to integers
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 5;
+
+  const skip = (page - 1) * limit;
+
+  // Build search filter
+  let searchFilter = {};
+  if (search) {
+    searchFilter = {
+      name: {
+        $regex: search,
+        $options: "i", // case-insensitive match
+      },
+    };
+  }
+
+  // Get total matching employees count
+  const totalEmployees = await EmployeeModel.countDocuments(searchFilter);
+
+  // Handle edge case: page exceeds total employees
+  if (skip >= totalEmployees && totalEmployees !== 0) {
+    return res.status(200).json({
+      message: "No employees found for this page.",
+      success: true,
+      data: {
+        employees: [],
+        pagination: {
+          totalEmployees,
+          totalPages: Math.ceil(totalEmployees / limit),
+          currentPage: page,
+          pageSize: limit,
+        },
+      },
+    });
+  }
+
+  // Fetch employees with pagination
+  const employees = await EmployeeModel.find(searchFilter)
+    .skip(skip)
+    .limit(limit)
+    .sort({ updatedAt: -1 });
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalEmployees / limit);
+
+ 
   res.status(200).json({
     message: "All employees fetched successfully",
     success: true,
-    employees: allEmployees,
+    data: {
+      employees,
+      pagination: {
+        totalEmployees, 
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+      },
+    },
   });
 });
 
