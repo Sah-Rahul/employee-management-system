@@ -11,18 +11,21 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 4000;
 
+
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true,
-  })
-);
+
 
 // todo routes here
  
